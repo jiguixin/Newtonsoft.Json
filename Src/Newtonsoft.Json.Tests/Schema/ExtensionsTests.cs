@@ -26,6 +26,8 @@
 using System;
 using System.Collections.Generic;
 #if !NETFX_CORE
+using System.Globalization;
+using System.Text;
 using NUnit.Framework;
 #else
 using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
@@ -451,5 +453,77 @@ namespace Newtonsoft.Json.Tests.Schema
       Assert.IsTrue(a.IsValid(schema, out errorMessages));
       Assert.AreEqual(0, errorMessages.Count);
     }
+
+      [Test]
+      public void T1()
+      {
+          string s = null;
+
+          using (FileStream fs = new FileStream("json.txt", FileMode.Open))
+          {
+              using (StreamReader sr = new StreamReader(fs,System.Text.Encoding.Default))
+              {
+                  s= sr.ReadToEnd();
+              }
+          }
+
+          Console.WriteLine(ConvertUnicode(s));
+         
+//          JObject obj = JObject.Parse(s);
+
+
+      }
+
+      int _charPos = 0; 
+      char[] _chars = null;
+
+      private string ConvertUnicode(string s)
+      {
+          _chars = s.ToCharArray(); 
+
+          int charPos = _chars.Length; 
+          StringBuilder sbBuffer = new StringBuilder();
+           
+          char? c;
+          while (_charPos < charPos)
+          {
+              c = null;
+              switch (c = _chars[_charPos++])
+              {
+                  case '\\': 
+                      int nextCharIdx = _charPos;
+
+                      char nextChar = _chars[nextCharIdx];
+                       
+                      switch (nextChar)
+                      { 
+                          case 'u':
+                              _charPos++; 
+                              sbBuffer.Append(ParseUnicode());
+                              break;
+                          default: 
+                              break;
+                      }
+                      break;
+                  default:
+                      sbBuffer.Append(c);
+                      break; 
+              }
+          } 
+          return sbBuffer.ToString();
+      }
+
+      private char ParseUnicode()
+      {
+          char writeChar;
+
+          string hexValues = new string(_chars, _charPos, 4);
+          char hexChar = Convert.ToChar(int.Parse(hexValues, NumberStyles.HexNumber, NumberFormatInfo.InvariantInfo));
+          writeChar = hexChar;
+
+          _charPos += 4;
+          return writeChar;
+      }
   }
-}
+ 
+} 
